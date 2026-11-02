@@ -203,6 +203,7 @@ button:disabled { cursor: not-allowed; }
 .menu-btn { display: none; }
 .progress { flex: 1; font-size: 0.85rem; font-weight: 700; color: var(--c-text-muted); }
 .progress b { color: var(--c-text-bright); }
+.retry-count { color: #fcd34d; }
 
 .card-wrap { width: 100%; max-width: 640px; perspective: 1400px; }
 .card {
@@ -237,6 +238,7 @@ button:disabled { cursor: not-allowed; }
 .tag--state-new { background: rgba(110,231,183,0.12); color: var(--c-success); }
 .tag--state-learning, .tag--state-relearning { background: rgba(248,113,113,0.12); color: var(--c-danger); }
 .tag--state-review { background: rgba(var(--c-blue-rgb), 0.12); color: var(--c-blue); }
+.tag--retry { background: rgba(var(--c-yellow-rgb), 0.14); color: #fcd34d; }
 .tag--page { margin-left: auto; background: rgba(var(--c-yellow-rgb), 0.12); color: #fcd34d; }
 .face-body {
   flex: 1;
@@ -1167,7 +1169,7 @@ const STATE_LABEL = { new: 'Baru', learning: 'Belajar', review: 'Review', relear
    STORAGE (localStorage)
    ════════════════════════════════════════════════════════════════ */
 const KEY_CARDS = 'fp_srs_cards';     // { "Mapel:id": {state, due_date, …} }
-const KEY_SESSION = 'fp_session';     // { mapel, queue:[id], total }
+const KEY_SESSION = 'fp_session';     // { mapel, queue:[id], total, retry:[id] }
 const KEY_CONFIG = 'fp_config';       // { newPerSession, reviewPerSession }
 const KEY_LAST_BACKUP = 'fp_last_backup'; // 'YYYY-MM-DD' backup terakhir
 const BACKUP_STALE_DAYS = 7;
@@ -1235,7 +1237,7 @@ function startSession(mapel) {
   const { due, fresh } = mapelStats(mapel);
   const queue = shuffle([...due, ...fresh]);
   if (queue.length === 0) return;
-  session = { mapel, queue, total: queue.length };
+  session = { mapel, queue, total: queue.length, retry: [] };
   flipped = false;
   save(KEY_SESSION, session);
   closeSidebar();
@@ -1253,13 +1255,25 @@ function answer(rating) {
   if (!session || !flipped) return;
   const id = session.queue[0];
   const { mapel } = session;
-  const before = getCard(mapel, id) ?? newCard();
-  cards[cardKey(mapel, id)] = { ...before, ...computeNextSM2(before, rating) };
-  save(KEY_CARDS, cards);
-  if (persistGranted === false) requestPersist(); // browser lebih mau memberi izin setelah ada interaksi
+  const isRetry = session.retry.includes(id);
 
-  // Kartu yang sudah dinilai langsung keluar dari sesi (termasuk Lupa → muncul besok).
-  session.queue = session.queue.slice(1);
+  // Hanya jawaban PERTAMA yang menentukan jadwal SRS. Kartu ulangan = latihan murni.
+  if (!isRetry) {
+    const before = getCard(mapel, id) ?? newCard();
+    cards[cardKey(mapel, id)] = { ...before, ...computeNextSM2(before, rating) };
+    save(KEY_CARDS, cards);
+    if (persistGranted === false) requestPersist(); // browser lebih mau memberi izin setelah ada interaksi
+  }
+
+  if (rating === 'lupa') {
+    // Lupa → lempar ke belakang antrian, muncul lagi sebelum sesi kelar (jadwal besok tetap tercatat).
+    session.queue = [...session.queue.slice(1), id];
+    if (!isRetry) session.retry = [...session.retry, id];
+  } else {
+    // Oke / Sangat Mudah → keluar dari sesi.
+    session.queue = session.queue.slice(1);
+    session.retry = session.retry.filter((x) => x !== id);
+  }
   if (session.queue.length === 0) { endSession(); return; }
   save(KEY_SESSION, session);
   flipped = false;
@@ -1279,7 +1293,8 @@ function restoreSession() {
   if (!s || !DATA[s.mapel] || !Array.isArray(s.queue)) { localStorage.removeItem(KEY_SESSION); return; }
   const queue = s.queue.filter((id) => itemOf(s.mapel, id));
   if (queue.length === 0) { localStorage.removeItem(KEY_SESSION); return; }
-  session = { mapel: s.mapel, queue, total: Math.max(s.total || 0, queue.length) };
+  const retry = Array.isArray(s.retry) ? s.retry.filter((id) => queue.includes(id)) : [];
+  session = { mapel: s.mapel, queue, total: Math.max(s.total || 0, queue.length), retry };
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -1410,7 +1425,9 @@ function renderProgress() {
   const p = $('progress');
   if (!session) { p.replaceChildren(); return; }
   const done = session.total - session.queue.length;
-  p.replaceChildren('⚡ ', el('b', {}, `${done} / ${session.total}`), ` · ${session.mapel}`);
+  const nRetry = session.retry.length;
+  p.replaceChildren('⚡ ', el('b', {}, `${done} / ${session.total}`), ` · ${session.mapel}`,
+    nRetry ? el('span', { class: 'retry-count' }, ` · 🔁 ${nRetry} diulang`) : '');
 }
 
 function renderCard(resetAnim) {
@@ -1437,6 +1454,7 @@ function renderCard(resetAnim) {
     const top = () => el('div', { class: 'face-top' },
       el('span', { class: 'tag' }, session.mapel),
       el('span', { class: `tag tag--state-${state}` }, STATE_LABEL[state]),
+      session.retry.includes(id) ? el('span', { class: 'tag tag--retry' }, '🔁 Ulangan') : null,
       it.halaman != null && it.halaman !== '' ? el('span', { class: 'tag tag--page' }, `📖 hal. ${it.halaman}`) : null,
     );
     front.replaceChildren(top(),
@@ -1468,12 +1486,16 @@ function renderActions() {
     return;
   }
   const c = getCard(session.mapel, session.queue[0]);
-  const hints = previewIntervals(c);
+  const isRetry = session.retry.includes(session.queue[0]);
+  // Kartu ulangan tidak mengubah jadwal → tampilkan arti tombolnya, bukan interval.
+  const hints = isRetry
+    ? { lupa: 'ulang lagi', oke: 'selesai', gampang: 'selesai' }
+    : previewIntervals(c);
   box.replaceChildren(
     el('div', { class: 'rate-row', role: 'group', 'aria-label': 'Nilai hafalan' },
       RATINGS.map((r) => el('button', {
         class: `rate-btn ${r.cls}`,
-        'aria-label': `${r.label.replace(/^\S+\s/, '')}, ulang ${hints[r.key]}`,
+        'aria-label': `${r.label.replace(/^\S+\s/, '')}, ${isRetry ? hints[r.key] : `ulang ${hints[r.key]}`}`,
         onclick: () => answer(r.key),
       }, el('span', {}, r.label), el('span', { class: 'rate-int' }, hints[r.key]))),
     ),
