@@ -129,7 +129,8 @@ button:disabled { cursor: not-allowed; }
   padding: 11px 12px;
   background: none; border: 0; text-align: left;
 }
-.mapel-name { font-weight: 700; color: var(--c-text-bright); font-size: 0.92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mapel-title { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-width: 0; }
+.mapel-name { max-width: 100%; font-weight: 700; color: var(--c-text-bright); font-size: 0.92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mapel-count {
   flex-shrink: 0;
   font-size: 0.68rem; font-weight: 700;
@@ -149,6 +150,16 @@ button:disabled { cursor: not-allowed; }
   font-size: 0.75rem; font-weight: 700;
   white-space: nowrap;
 }
+.mapel-cfg {
+  flex-shrink: 0;
+  width: 32px;
+  margin: 7px 6px 7px 0;
+  border-radius: 9px;
+  border: 1px solid var(--c-border);
+  background: transparent;
+  font-size: 0.85rem;
+}
+.mapel-cfg:hover { border-color: rgba(var(--c-accent-rgb), 0.5); }
 .mapel-start:hover:not(:disabled) { border-color: var(--c-accent-soft); }
 .mapel-start:disabled { background: transparent; border-color: var(--c-border); color: var(--c-text-dim); }
 .mapel-items { padding: 0 8px 8px; display: flex; flex-direction: column; gap: 4px; }
@@ -428,15 +439,6 @@ button:disabled { cursor: not-allowed; }
 <div class="modal-bg" id="settingsBg" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
     <h3 id="settingsTitle">⚙️ Pengaturan</h3>
-    <div class="modal-section">Jumlah kartu per sesi</div>
-    <div class="field">
-      <label for="cfgNew">Kartu baru<small>Diambil berurutan dari atas</small></label>
-      <input id="cfgNew" type="number" min="0" max="999" inputmode="numeric">
-    </div>
-    <div class="field">
-      <label for="cfgRev">Review<small>Kartu yang jatuh tempo hari ini</small></label>
-      <input id="cfgRev" type="number" min="0" max="999" inputmode="numeric">
-    </div>
     <div class="modal-section">Backup progres</div>
     <p class="backup-status" id="backupStatus"></p>
     <div class="backup-btns">
@@ -448,7 +450,27 @@ button:disabled { cursor: not-allowed; }
     <div class="modal-section">Reset progres</div>
     <div class="reset-list" id="resetList"></div>
     <div class="modal-actions">
-      <button class="btn btn--primary" id="settingsClose">Simpan & Tutup</button>
+      <button class="btn btn--primary" id="settingsClose">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- Setelan per mapel -->
+<div class="modal-bg" id="mapelCfgBg" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mapelCfgTitle">
+    <h3 id="mapelCfgTitle"></h3>
+    <div class="modal-section">Jumlah kartu per sesi</div>
+    <div class="field">
+      <label for="cfgNew">Kartu baru<small>Diambil berurutan dari atas</small></label>
+      <input id="cfgNew" type="number" min="0" max="999" inputmode="numeric">
+    </div>
+    <div class="field">
+      <label for="cfgRev">Review<small>Kartu yang jatuh tempo hari ini</small></label>
+      <input id="cfgRev" type="number" min="0" max="999" inputmode="numeric">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="mapelCfgCancel">Batal</button>
+      <button class="btn btn--primary" id="mapelCfgSave">Simpan</button>
     </div>
   </div>
 </div>
@@ -1170,10 +1192,11 @@ const STATE_LABEL = { new: 'Baru', learning: 'Belajar', review: 'Review', relear
    ════════════════════════════════════════════════════════════════ */
 const KEY_CARDS = 'fp_srs_cards';     // { "Mapel:id": {state, due_date, …} }
 const KEY_SESSION = 'fp_session';     // { mapel, queue:[id], total, retry:[id] }
-const KEY_CONFIG = 'fp_config';       // { newPerSession, reviewPerSession }
+const KEY_CONFIG = 'fp_config';       // { perMapel: { [mapel]: { newPerSession, reviewPerSession } } }
 const KEY_LAST_BACKUP = 'fp_last_backup'; // 'YYYY-MM-DD' backup terakhir
 const BACKUP_STALE_DAYS = 7;
 const DEFAULT_CONFIG = { newPerSession: 10, reviewPerSession: 20 };
+// config = { perMapel: { [mapel]: { newPerSession, reviewPerSession } } } — mapel tanpa entri pakai DEFAULT_CONFIG.
 
 function load(key, fallback) {
   try { const v = JSON.parse(localStorage.getItem(key)); return v ?? fallback; } catch { return fallback; }
@@ -1183,7 +1206,26 @@ function save(key, value) {
 }
 
 let cards = load(KEY_CARDS, {});
-let config = { ...DEFAULT_CONFIG, ...load(KEY_CONFIG, {}) };
+let config = normalizeConfig(load(KEY_CONFIG, {}));
+
+function clampCount(v, fallback) {
+  const n = typeof v === 'number' ? v : parseInt(v, 10);
+  return Number.isFinite(n) ? Math.max(0, Math.min(999, Math.floor(n))) : fallback;
+}
+/** Bentuk lama { newPerSession, reviewPerSession } (global) diabaikan → semua mapel mulai dari default (2A). */
+function normalizeConfig(raw) {
+  const perMapel = {};
+  const src = raw && typeof raw.perMapel === 'object' && raw.perMapel ? raw.perMapel : {};
+  for (const [m, c] of Object.entries(src)) {
+    if (!c || typeof c !== 'object') continue;
+    perMapel[m] = {
+      newPerSession: clampCount(c.newPerSession, DEFAULT_CONFIG.newPerSession),
+      reviewPerSession: clampCount(c.reviewPerSession, DEFAULT_CONFIG.reviewPerSession),
+    };
+  }
+  return { perMapel };
+}
+const cfgFor = (mapel) => config.perMapel[mapel] ?? DEFAULT_CONFIG;
 let session = null;   // { mapel, queue:[id], total }
 let flipped = false;
 let today = todayStr();
@@ -1218,8 +1260,9 @@ function getNewIds(mapel, max) {
   return out;
 }
 function mapelStats(mapel) {
-  const due = getDueIds(mapel, config.reviewPerSession);
-  const fresh = getNewIds(mapel, config.newPerSession);
+  const cfg = cfgFor(mapel);
+  const due = getDueIds(mapel, cfg.reviewPerSession);
+  const fresh = getNewIds(mapel, cfg.newPerSession);
   const learned = (DATA[mapel] || []).filter((it) => { const c = getCard(mapel, it.id); return c && c.state !== 'new'; }).length;
   return { due, fresh, learned, total: (DATA[mapel] || []).length };
 }
@@ -1368,10 +1411,18 @@ function renderMapelList() {
           'aria-expanded': String(isOpen),
           onclick: () => { openMapel.has(mapel) ? openMapel.delete(mapel) : openMapel.add(mapel); renderMapelList(); },
         },
-          el('span', { class: 'mapel-name' }, mapel),
-          el('span', { class: 'mapel-count' }, `${learned}/${total} Soal`),
+          el('span', { class: 'mapel-title' },
+            el('span', { class: 'mapel-name' }, mapel),
+            el('span', { class: 'mapel-count' }, `${learned}/${total} Soal`),
+          ),
           el('span', { class: 'chev', 'aria-hidden': 'true' }, '▼'),
         ),
+        session ? null : el('button', {
+          class: 'mapel-cfg',
+          'aria-label': `Setelan jumlah kartu ${mapel}`,
+          title: 'Setelan jumlah kartu',
+          onclick: () => openMapelCfg(mapel),
+        }, '⚙'),
         startBtn,
       ),
     );
@@ -1594,34 +1645,54 @@ function renderResetList() {
   }
 }
 function openSettings() {
-  $('cfgNew').value = config.newPerSession;
-  $('cfgRev').value = config.reviewPerSession;
   renderResetList();
   renderBackupStatus();
   renderPersistStatus();
   $('settingsBg').hidden = false;
-  $('cfgNew').focus();
+  $('settingsClose').focus();
 }
 function closeSettings() {
-  const n = parseInt($('cfgNew').value, 10), r = parseInt($('cfgRev').value, 10);
-  config = {
-    newPerSession: Number.isFinite(n) ? clamp(n, 0, 999) : DEFAULT_CONFIG.newPerSession,
-    reviewPerSession: Number.isFinite(r) ? clamp(r, 0, 999) : DEFAULT_CONFIG.reviewPerSession,
+  $('settingsBg').hidden = true;
+}
+
+/* ── Setelan jumlah kartu per mapel ── */
+let cfgMapel = null;
+function openMapelCfg(mapel) {
+  cfgMapel = mapel;
+  const c = cfgFor(mapel);
+  $('mapelCfgTitle').textContent = `⚙ Setelan ${mapel}`;
+  $('cfgNew').value = c.newPerSession;
+  $('cfgRev').value = c.reviewPerSession;
+  $('mapelCfgBg').hidden = false;
+  $('cfgNew').focus();
+  $('cfgNew').select();
+}
+function closeMapelCfg() { $('mapelCfgBg').hidden = true; cfgMapel = null; }
+function saveMapelCfg() {
+  if (!cfgMapel) return closeMapelCfg();
+  config.perMapel[cfgMapel] = {
+    newPerSession: clampCount($('cfgNew').value, DEFAULT_CONFIG.newPerSession),
+    reviewPerSession: clampCount($('cfgRev').value, DEFAULT_CONFIG.reviewPerSession),
   };
   save(KEY_CONFIG, config);
-  $('settingsBg').hidden = true;
+  closeMapelCfg();
   renderAll();
 }
+$('mapelCfgSave').addEventListener('click', saveMapelCfg);
+$('mapelCfgCancel').addEventListener('click', closeMapelCfg);
+$('mapelCfgBg').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeMapelCfg(); });
 $('btnSettings').addEventListener('click', openSettings);
 $('settingsClose').addEventListener('click', closeSettings);
 $('settingsBg').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeSettings(); });
 
 document.addEventListener('keydown', (e) => {
   if (!$('confirmBg').hidden) { if (e.key === 'Escape') closeConfirm(); return; }
-  if (!$('settingsBg').hidden) {
-    if (e.key === 'Escape' || (e.key === 'Enter' && e.target instanceof HTMLInputElement)) closeSettings();
+  if (!$('mapelCfgBg').hidden) {
+    if (e.key === 'Escape') closeMapelCfg();
+    else if (e.key === 'Enter' && e.target instanceof HTMLInputElement) saveMapelCfg();
     return;
   }
+  if (!$('settingsBg').hidden) { if (e.key === 'Escape') closeSettings(); return; }
   if (e.target instanceof HTMLInputElement) return;
   if (e.key === 'Escape') { closeSidebar(); return; }
   if (!session) return;
@@ -1708,10 +1779,8 @@ function importBackup(file) {
         cards = Object.fromEntries(valid);
         save(KEY_CARDS, cards);
         if (data.config && typeof data.config === 'object') {
-          config = { ...DEFAULT_CONFIG, ...config, ...data.config };
+          config = normalizeConfig(data.config);
           save(KEY_CONFIG, config);
-          $('cfgNew').value = config.newPerSession;
-          $('cfgRev').value = config.reviewPerSession;
         }
         // File yang barusan di-restore = salinan aman, jadi hitung sebagai backup.
         localStorage.setItem(KEY_LAST_BACKUP, todayStr());
