@@ -2769,6 +2769,39 @@ const DATA = {
     { id: 122, soal: "Siapa yang dimaksud al-al (keluarga Nabi) dalam nazham?", jawaban: "Umat ijabah (hal. 12)" },
     { id: 123, soal: "Mengapa al-al dalam nazham diartikan umat ijabah?", jawaban: "Karena kedudukannya sebagai doa, yang di dalamnya dituntut keumuman (hal. 12)" },
   ],
+  "Lughat": [
+    // Durus Lughah — kosakata; depan: madhi - mudhari - masdar, belakang: arti
+    { id: 1, soal: "أَلَّفَ - يُؤَلِّفُ - تَأْلِيْفًا", jawaban: "Menyusun (hal. 28)" },
+    { id: 2, soal: "عَادَ - يَعُوْدُ - عَوْدًا", jawaban: "Menjenguk (hal. 28)" },
+    { id: 3, soal: "أَعَادَ - يُعِيْدُ - إِعَادَةً", jawaban: "Mengulangi (hal. 28)" },
+    { id: 4, soal: "رَجَّعَ - يُرَجِّعُ - تَرْجِيْعًا", jawaban: "Mengembalikan (hal. 28)" },
+    { id: 5, soal: "نَصَرَ - يَنْصُرُ - نَصْرًا", jawaban: "Menolong (hal. 28)" },
+    { id: 6, soal: "اِخْتَصَرَ - يَخْتَصِرُ - اِخْتِصَارًا", jawaban: "Meringkas (hal. 28)" },
+    { id: 7, soal: "قَوِيَ - يَقْوَى - قُوَّةً", jawaban: "Kuat (hal. 28)" },
+    { id: 8, soal: "لَاكَمَ - يُلَاكِمُ - مُلَاكَمَةً", jawaban: "Meninju (hal. 28)" },
+    { id: 9, soal: "حَسَدَ - يَحْسُدُ - حَسَدًا", jawaban: "Dengki (hal. 28)" },
+    { id: 10, soal: "رَعَى - يَرْعَى - رَعْيًا", jawaban: "Makan rumput (hal. 28)" },
+    { id: 11, soal: "بَاضَ - يَبِيْضُ - بَيْضًا", jawaban: "Bertelur (hal. 28)" },
+    { id: 12, soal: "اِنْطَفَأَ - يَنْطَفِئُ - اِنْطِفَاءً", jawaban: "Padam (hal. 28)" },
+    { id: 13, soal: "أَطْفَأَ - يُطْفِئُ - إِطْفَاءً", jawaban: "Memadamkan (hal. 28)" },
+    { id: 14, soal: "أَشْرَقَ - يُشْرِقُ - إِشْرَاقًا", jawaban: "Bercahaya (hal. 28)" },
+    { id: 15, soal: "اِخْتَفَى - يَخْتَفِي - اِخْتِفَاءً", jawaban: "Bersembunyi (hal. 28)" },
+    { id: 16, soal: "غَرَبَ - يَغْرُبُ - غُرُوْبًا", jawaban: "Terbenam (hal. 28)" },
+    { id: 17, soal: "اِشْتَغَلَ - يَشْتَغِلُ - اِشْتِغَالًا", jawaban: "Sibuk (hal. 28)" },
+    { id: 18, soal: "اِشْتَدَّ - يَشْتَدُّ - اِشْتِدَادًا", jawaban: "Sangat (hal. 28)" },
+    { id: 19, soal: "خَيَّرَ - يُخَيِّرُ - تَخْيِيْرًا", jawaban: "Memberi pilihan (hal. 28)" },
+    { id: 20, soal: "أَشْبَهَ - يُشْبِهُ - إِشْبَاهًا", jawaban: "Menyerupai (hal. 28)" },
+    { id: 21, soal: "سَالَ - يَسِيْلُ - سَيْلًا", jawaban: "Mengalir (hal. 28)" },
+    { id: 22, soal: "قَبَضَ عَلَى - يَقْبِضُ عَلَى - قَبْضًا عَلَى", jawaban: "Menggenggam (hal. 28)" },
+    { id: 23, soal: "اِنْتَقَلَ - يَنْتَقِلُ - اِنْتِقَالًا", jawaban: "Pindah (hal. 28)" },
+    { id: 24, soal: "نَقَلَ - يَنْقُلُ - نَقْلًا", jawaban: "Memindahkan (hal. 28)" },
+    { id: 25, soal: "زَالَ - يَزُوْلُ - زَوَالًا", jawaban: "Hilang (hal. 28)" },
+    { id: 26, soal: "بَلَغَ - يَبْلُغُ - بُلُوْغًا", jawaban: "Sampai (hal. 28)" },
+    { id: 27, soal: "تَعَوَّدَ - يَتَعَوَّدُ - تَعَوُّدًا", jawaban: "Terbiasa (hal. 28)" },
+    { id: 28, soal: "اِدَّخَرَ - يَدَّخِرُ - اِدِّخَارًا", jawaban: "Menyimpan (hal. 28)" },
+    { id: 29, soal: "شَاءَ - يَشَاءُ - مَشِيْئَةً", jawaban: "Menghendaki (hal. 28)" },
+    { id: 30, soal: "سَخِرَ - يَسْخَرُ - سَخَرًا", jawaban: "Menghina (hal. 28)" },
+  ],
 };
 
 /* ════════════════════════════════════════════════════════════════
@@ -2863,7 +2896,7 @@ const STATE_LABEL = { new: 'Baru', learning: 'Belajar', review: 'Review', relear
    STORAGE (localStorage)
    ════════════════════════════════════════════════════════════════ */
 const KEY_CARDS = 'fp_srs_cards';     // { "Mapel:id": {state, due_date, …} }
-const KEY_SESSION = 'fp_session';     // { mapel, queue:[id], total, retry:[id] }
+const KEY_SESSION = 'fp_session';     // { mapel, queue:[id], total, retry:[id], seen:[id] }
 const KEY_CONFIG = 'fp_config';       // { perMapel: { [mapel]: { newPerSession, reviewPerSession } } }
 const KEY_LAST_BACKUP = 'fp_last_backup'; // 'YYYY-MM-DD' backup terakhir
 const BACKUP_STALE_DAYS = 7;
@@ -2952,7 +2985,7 @@ function startSession(mapel) {
   const { due, fresh } = mapelStats(mapel);
   const queue = shuffle([...due, ...fresh]);
   if (queue.length === 0) return;
-  session = { mapel, queue, total: queue.length, retry: [] };
+  session = { mapel, queue, total: queue.length, retry: [], seen: [] };
   flipped = false;
   save(KEY_SESSION, session);
   closeSidebar();
@@ -2990,6 +3023,16 @@ function answer(rating) {
     session.retry = session.retry.filter((x) => x !== id);
   }
   if (session.queue.length === 0) { endSession(); return; }
+
+  // Putaran baru: kalau kartu terdepan sudah muncul di putaran ini, antrian sudah muter balik →
+  // acak ulang sisa kartu supaya urutan kartu ulangan tidak bisa dihafal.
+  session.seen = [...(session.seen || []), id];
+  if (session.seen.includes(session.queue[0])) {
+    let q = shuffle(session.queue);
+    if (q.length > 1 && q[0] === id) q = [...q.slice(1), q[0]]; // jangan langsung muncul kartu yang barusan
+    session.queue = q;
+    session.seen = [];
+  }
   save(KEY_SESSION, session);
   flipped = false;
   renderAll(true);
@@ -3009,7 +3052,8 @@ function restoreSession() {
   const queue = s.queue.filter((id) => itemOf(s.mapel, id));
   if (queue.length === 0) { localStorage.removeItem(KEY_SESSION); return; }
   const retry = Array.isArray(s.retry) ? s.retry.filter((id) => queue.includes(id)) : [];
-  session = { mapel: s.mapel, queue, total: Math.max(s.total || 0, queue.length), retry };
+  const seen = Array.isArray(s.seen) ? s.seen.filter((id) => queue.includes(id)) : [];
+  session = { mapel: s.mapel, queue, total: Math.max(s.total || 0, queue.length), retry, seen };
 }
 
 /* ════════════════════════════════════════════════════════════════
